@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+    <title>TransNPN · Simulador de Polarização</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(145deg, #f4f7fc 0%, #e9eef4 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            margin: 0;
+        }
+
+        .card {
+            max-width: 780px;
+            width: 100%;
+            background: rgba(255,255,255,0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0,20,40,0.35), inset 0 1px 2px rgba(255,255,255,0.7);
+            padding: 24px 22px 32px;
+            border: 1px solid rgba(255,255,255,0.5);
+            transition: all 0.2s ease;
+        }
+
+        h2 {
+            font-size: 1.9rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #0a1a2b;
+            text-shadow: 2px 2px 0 rgba(255,255,255,0.5);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        h2 span {
+            background: #1e2b3f;
+            padding: 6px 16px;
+            border-radius: 60px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #ffffff;
+            border: 1px solid #ffffff70;
+            backdrop-filter: blur(4px);
+            text-shadow: none;
+        }
+
+        .selector-panel {
+            background: #ffffffb0;
+            backdrop-filter: blur(8px);
+            border-radius: 60px;
+            padding: 8px 12px 8px 24px;
+            margin: 20px 0 16px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            border: 1px solid #ffffff;
+            box-shadow: 0 6px 14px rgba(0,10,20,0.08);
+        }
+
+        .selector-panel label {
+            font-weight: 550;
+            color: #1e3a5f;
+            letter-spacing: -0.2px;
+        }
+
+        select {
+            flex: 2 1 240px;
+            background: white;
+            border: 1.5px solid #ccdbe9;
+            border-radius: 60px;
+            padding: 14px 22px;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #0b1e32;
+            appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%23344e6c" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 18px center;
+            background-size: 18px;
+            cursor: pointer;
+            transition: 0.15s;
+            box-shadow: 0 2px 5px #00000008;
+        }
+
+        select:hover {
+            border-color: #7f9fbb;
+        }
+        select:focus {
+            outline: none;
+            border-color: #2a5c8f;
+            box-shadow: 0 0 0 3px #a3c0db60;
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 16px 18px;
+            background: #ffffffd6;
+            backdrop-filter: blur(4px);
+            padding: 26px 24px;
+            border-radius: 38px;
+            margin: 22px 0 20px;
+            border: 1px solid rgba(255,255,255,0.9);
+            box-shadow: inset 0 2px 4px #00000008, 0 8px 18px -8px #1e3a5f30;
+        }
+
+        .campo {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .campo label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            color: #34547c;
+            margin-left: 6px;
+        }
+
+        .campo input {
+            background: #fbfdff;
+            border: 1.5px solid #cbdae9;
+            border-radius: 30px;
+            padding: 14px 20px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #101f33;
+            transition: 0.15s;
+            width: 100%;
+            box-shadow: inset 0 2px 4px #00000004;
+        }
+
+        .campo input:focus {
+            outline: none;
+            border-color: #2f6ea2;
+            box-shadow: 0 0 0 4px #b5d2f0, inset 0 1px 3px #00000010;
+        }
+
+        .campo input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        .campo input[type="number"]::-webkit-outer-spin-button,
+        .campo input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .botoes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin: 8px 0 16px;
+            align-items: center;
+        }
+
+        .btn-calcular {
+            background: #1e3b5a;
+            border: none;
+            padding: 18px 42px;
+            border-radius: 70px;
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: white;
+            letter-spacing: 0.3px;
+            box-shadow: 0 12px 18px -8px #1e3b5a80, 0 2px 0 #0f2333 inset;
+            cursor: pointer;
+            transition: 0.1s ease;
+            border: 1px solid #ffffff50;
+            flex: 1 1 auto;
+        }
+
+        .btn-calcular:hover {
+            background: #244b70;
+            transform: scale(1.02);
+            box-shadow: 0 16px 22px -8px #1e3b5a;
+        }
+        .btn-calcular:active {
+            transform: scale(0.98);
+            box-shadow: 0 4px 10px -2px #102433;
+        }
+
+        .btn-exemplo {
+            background: #ffffffd0;
+            backdrop-filter: blur(5px);
+            border: 1.5px solid #a0b8d0;
+            padding: 18px 32px;
+            border-radius: 70px;
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #1e3b5a;
+            cursor: pointer;
+            transition: 0.1s;
+            flex: 0 1 auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-exemplo:hover {
+            background: white;
+            border-color: #2f5b88;
+            transform: scale(1.02);
+        }
+        .btn-exemplo:active {
+            transform: scale(0.98);
+        }
+
+        .result-card {
+            background: #1f2e41f5;
+            backdrop-filter: blur(8px);
+            border-radius: 38px;
+            padding: 28px 26px;
+            margin: 30px 0 20px;
+            border: 1px solid #ffffffb0;
+            box-shadow: 0 20px 30px -12px #0d1b2b;
+            color: white;
+            transition: 0.2s;
+        }
+
+        .regiao {
+            font-size: 2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: -0.5px;
+            background: #ffffff15;
+            padding: 12px 24px;
+            border-radius: 80px;
+            margin-bottom: 28px;
+            border: 1px solid #ffffff40;
+            backdrop-filter: blur(4px);
+        }
+
+        .dados-q {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 22px 28px;
+        }
+
+        .item-q {
+            background: #ffffff10;
+            border-radius: 32px;
+            padding: 16px 22px;
+            border: 1px solid #ffffff30;
+            backdrop-filter: blur(4px);
+        }
+        .item-q .rotulo {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            opacity: 0.7;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .item-q .valor {
+            font-size: 1.9rem;
+            font-weight: 600;
+            line-height: 1.2;
+            word-break: break-word;
+        }
+        .item-q .unidade {
+            font-size: 1rem;
+            opacity: 0.7;
+            margin-left: 6px;
+            font-weight: 400;
+        }
+
+        .ponto-q-dest {
+            grid-column: span 2;
+            background: #2e405bc0;
+            border-radius: 50px;
+            padding: 16px 28px;
+            font-size: 1.3rem;
+            font-weight: 500;
+            border: 1px solid #7c9bc0;
+            text-align: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .canvas-wrapper {
+            background: #eef2f7;
+            border-radius: 44px;
+            padding: 18px 10px 10px 10px;
+            box-shadow: inset 0 -2px 5px #ffffff, inset 0 2px 8px #abbacf, 0 20px 30px -12px #0d1b2b80;
+            margin-top: 25px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-radius: 28px;
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            touch-action: none;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #32506e;
+            margin-top: 24px;
+            opacity: 0.8;
+            font-weight: 450;
+        }
+
+        @media (max-width: 520px) {
+            .card { padding: 18px; }
+            h2 { font-size: 1.6rem; }
+            .regiao { font-size: 1.6rem; padding: 8px 16px; }
+            .item-q .valor { font-size: 1.4rem; }
+            .ponto-q-dest { font-size: 1rem; }
+            .btn-calcular, .btn-exemplo { padding: 14px 22px; font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>⚡ TransNPN <span>polarização completa</span></h2>
+
+    <div class="selector-panel">
+        <label>📐 Configuração</label>
+        <select id="tipo" onchange="atualizarCampos()">
+            <option value="rb">Resistor de base (RB fixo)</option>
+            <option value="divisor">Divisor de tensão</option>
+            <option value="re" selected>Divisor + resistor de emissor (RE)</option>
+        </select>
+    </div>
+
+    <!-- Campos dinâmicos -->
+    <div id="campos" class="input-grid"></div>
+
+    <div class="botoes">
+        <button class="btn-calcular" onclick="calcular()">🔍 Calcular</button>
+        <button class="btn-exemplo" onclick="carregarExemplo()">📋 Exemplo</button>
+    </div>
+
+    <!-- Resultado elegante -->
+    <div class="result-card" id="resultado">
+        <div class="regiao">🟡 ATIVA</div>
+        <div class="dados-q">
+            <div class="item-q"><span class="rotulo">IB</span><span class="valor" id="res-ib">0</span><span class="unidade">A</span></div>
+            <div class="item-q"><span class="rotulo">IC</span><span class="valor" id="res-ic">0</span><span class="unidade">A</span></div>
+            <div class="item-q"><span class="rotulo">VCE</span><span class="valor" id="res-vce">0</span><span class="unidade">V</span></div>
+            <div class="item-q"><span class="rotulo">Potência</span><span class="valor" id="res-p">0</span><span class="unidade">W</span></div>
+            <div class="ponto-q-dest" id="res-pontoq">📍 Q (0.00 V , 0.00 mA)</div>
+        </div>
+    </div>
+
+    <!-- Gráfico -->
+    <div class="canvas-wrapper">
+        <canvas id="grafico" width="600" height="420" style="width:100%; height:auto; aspect-ratio:600/420"></canvas>
+    </div>
+    <footer>toque nos campos · valores em V, Ω, mA · β sem unidade</footer>
+</div>
+
+<script>
+    function atualizarCampos() {
+        let tipo = document.getElementById("tipo").value;
+        let container = document.getElementById("campos");
+        let html = "";
+
+        const makeField = (id, label, placeholder = "", value = "") => {
+            return `<div class="campo"><label>${label}</label><input type="number" id="${id}" placeholder="${placeholder}" value="${value}" step="any"></div>`;
+        };
+
+        if (tipo === "rb") {
+            html = makeField("vbb", "VBB (V)", "ex: 5") +
+                makeField("vcc", "VCC (V)", "ex: 12") +
+                makeField("beta", "β (beta)", "ex: 200") +
+                makeField("rb", "RB (Ω)", "ex: 220k") +
+                makeField("rc", "RC (Ω)", "ex: 1k");
+        } else if (tipo === "divisor") {
+            html = makeField("vcc", "VCC (V)", "ex: 15") +
+                makeField("beta", "β", "ex: 180") +
+                makeField("r1", "R1 (Ω)", "ex: 47k") +
+                makeField("r2", "R2 (Ω)", "ex: 10k") +
+                makeField("rc", "RC (Ω)", "ex: 2.2k");
+        } else { // re
+            html = makeField("vcc", "VCC (V)", "ex: 20") +
+                makeField("beta", "β", "ex: 220") +
+                makeField("r1", "R1 (Ω)", "ex: 56k") +
+                makeField("r2", "R2 (Ω)", "ex: 12k") +
+                makeField("rc", "RC (Ω)", "ex: 3.3k") +
+                makeField("re", "RE (Ω)", "ex: 1k");
+        }
+        container.innerHTML = html;
+        
+        // Se não houver valores, carrega exemplo da configuração atual
+        let tipoAtual = document.getElementById("tipo").value;
+        carregarValoresExemplo(tipoAtual);
+    }
+
+    const valoresExemplo = {
+        rb: { vbb: 5, vcc: 12, beta: 200, rb: 220000, rc: 1000 },
+        divisor: { vcc: 15, beta: 180, r1: 47000, r2: 10000, rc: 2200 },
+        re: { vcc: 20, beta: 220, r1: 56000, r2: 12000, rc: 3300, re: 1000 }
+    };
+
+    function carregarValoresExemplo(tipo) {
+        const vals = valoresExemplo[tipo];
+        if (!vals) return;
+        for (let [key, val] of Object.entries(vals)) {
+            let el = document.getElementById(key);
+            if (el) {
+                el.value = val;
+            }
+        }
+    }
+
+    function carregarExemplo() {
+        let tipo = document.getElementById("tipo").value;
+        carregarValoresExemplo(tipo);
+        // Calcula automaticamente após carregar os valores
+        calcular();
+    }
+
+    function calcular() {
+        let tipo = document.getElementById("tipo").value;
+        const Vbe = 0.7;
+        const VCEsat = 0.2;
+
+        let IB = 0, IC = 0, VCE = 0, VCC = 0, RC = 0, Beta = 0;
+
+        try {
+            if (tipo === "rb") {
+                let VBB = parseFloat(document.getElementById("vbb")?.value);
+                VCC = parseFloat(document.getElementById("vcc")?.value);
+                Beta = parseFloat(document.getElementById("beta")?.value);
+                let RB = parseFloat(document.getElementById("rb")?.value);
+                RC = parseFloat(document.getElementById("rc")?.value);
+                if (isNaN(VBB) || isNaN(VCC) || isNaN(Beta) || isNaN(RB) || isNaN(RC)) throw new Error("Preencha todos");
+                IB = (VBB - Vbe) / RB;
+                IC = Beta * IB;
+            } else if (tipo === "divisor") {
+                VCC = parseFloat(document.getElementById("vcc")?.value);
+                Beta = parseFloat(document.getElementById("beta")?.value);
+                let R1 = parseFloat(document.getElementById("r1")?.value);
+                let R2 = parseFloat(document.getElementById("r2")?.value);
+                RC = parseFloat(document.getElementById("rc")?.value);
+                if (isNaN(VCC) || isNaN(Beta) || isNaN(R1) || isNaN(R2) || isNaN(RC)) throw new Error("Preencha todos");
+                let Vth = VCC * (R2 / (R1 + R2));
+                let Rth = (R1 * R2) / (R1 + R2);
+                IB = (Vth - Vbe) / Rth;
+                IC = Beta * IB;
+            } else { // re
+                VCC = parseFloat(document.getElementById("vcc")?.value);
+                Beta = parseFloat(document.getElementById("beta")?.value);
+                let R1 = parseFloat(document.getElementById("r1")?.value);
+                let R2 = parseFloat(document.getElementById("r2")?.value);
+                RC = parseFloat(document.getElementById("rc")?.value);
+                let RE = parseFloat(document.getElementById("re")?.value);
+                if (isNaN(VCC) || isNaN(Beta) || isNaN(R1) || isNaN(R2) || isNaN(RC) || isNaN(RE)) throw new Error("Preencha todos");
+                let Vth = VCC * (R2 / (R1 + R2));
+                let Rth = (R1 * R2) / (R1 + R2);
+                IB = (Vth - Vbe) / (Rth + (Beta + 1) * RE);
+                IC = Beta * IB;
+            }
+
+            let ICsat = (VCC - VCEsat) / RC;
+            let regiao = "";
+
+            if (IC <= 0) {
+                regiao = "🔴 CORTE";
+                IB = 0; IC = 0; VCE = VCC;
+            } else if (IC < ICsat) {
+                regiao = "🟡 ATIVA";
+                VCE = VCC - IC * RC;
+            } else {
+                regiao = "🟢 SATURAÇÃO";
+                IC = ICsat;
+                VCE = VCEsat;
+            }
+
+            let P = VCE * IC;
+            let IC_mA = IC * 1000;
+
+            document.querySelector(".regiao").innerHTML = regiao;
+            document.getElementById("res-ib").innerText = IB.toExponential(4);
+            document.getElementById("res-ic").innerText = IC.toExponential(4);
+            document.getElementById("res-vce").innerText = VCE.toFixed(3);
+            document.getElementById("res-p").innerText = P.toExponential(4);
+            document.getElementById("res-pontoq").innerHTML = `📍 Q (${VCE.toFixed(3)} V , ${IC_mA.toFixed(3)} mA)`;
+
+            desenharGrafico(VCC, RC, IC, VCE, Beta, IB);
+
+        } catch (e) {
+            alert("Por favor, preencha todos os campos com valores numéricos válidos.");
+        }
+    }
+
+    function desenharGrafico(VCC, RC, ICQ, VCEQ, Beta, IB_real) {
+        const canvas = document.getElementById("grafico");
+        const ctx = canvas.getContext("2d");
+        const w = canvas.width, h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+
+        const padding = 70;
+        const largura = w - 2 * padding;
+        const altura = h - 2 * padding;
+
+        let ICmax = VCC / RC;
+        let ICmax_mA = ICmax * 1000;
+
+        function escalaX(v) { return padding + (v / VCC) * largura; }
+        function escalaY(i_mA) { return h - padding - (i_mA / ICmax_mA) * altura; }
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#1e2f40";
+        ctx.beginPath();
+        ctx.moveTo(padding, padding - 5);
+        ctx.lineTo(padding, h - padding);
+        ctx.lineTo(w - padding + 5, h - padding);
+        ctx.stroke();
+
+        ctx.font = "bold 14px 'Inter', sans-serif";
+        ctx.fillStyle = "#14273e";
+        ctx.fillText("I꜀ (mA)", 15, padding - 10);
+        ctx.fillText("VCE (V)", w - padding + 5, h - padding - 10);
+
+        ctx.beginPath();
+        ctx.strokeStyle = "#2f4f7f";
+        ctx.lineWidth = 3;
+        ctx.moveTo(escalaX(0), escalaY(ICmax_mA));
+        ctx.lineTo(escalaX(VCC), escalaY(0));
+        ctx.stroke();
+
+        let IB_values = [
+            IB_real * 0.5,
+            IB_real * 0.75,
+            IB_real,
+            IB_real * 1.25,
+            IB_real * 1.5
+        ];
+
+        for (let i = 0; i < IB_values.length; i++) {
+            let IC_curve = Beta * IB_values[i];
+            let IC_curve_mA = IC_curve * 1000;
+            if (IC_curve_mA > ICmax_mA) IC_curve_mA = ICmax_mA;
+
+            ctx.beginPath();
+            ctx.strokeStyle = (IB_values[i] === IB_real) ? "#C5283D" : "#7a8faa";
+            ctx.lineWidth = (IB_values[i] === IB_real) ? 3.5 : 1.5;
+            ctx.setLineDash((IB_values[i] === IB_real) ? [] : [6, 4]);
+            ctx.moveTo(escalaX(0), escalaY(IC_curve_mA));
+            ctx.lineTo(escalaX(VCC), escalaY(IC_curve_mA));
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = "#1e293b";
+            ctx.font = "bold 12px 'Inter'";
+            ctx.fillText("IB=" + (IB_values[i] * 1e6).toFixed(0) + " µA", escalaX(VCC) - 150, escalaY(IC_curve_mA) - 8);
+        }
+
+        let ICQ_mA = ICQ * 1000;
+        ctx.fillStyle = "#0b1f33";
+        ctx.shadowColor = "#ffffff";
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(escalaX(VCEQ), escalaY(ICQ_mA), 9, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#042131";
+        ctx.font = "bold 14px 'Inter'";
+        ctx.fillText("Q", escalaX(VCEQ) + 14, escalaY(ICQ_mA) - 12);
+    }
+
+    window.onload = function() {
+        atualizarCampos();
+        // Carrega o exemplo e calcula automaticamente ao iniciar
+        setTimeout(() => {
+            carregarExemplo();
+        }, 100);
+    };
+</script>
+</body>
+</html>
