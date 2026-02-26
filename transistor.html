@@ -2,7 +2,7 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
     <title>TransNPN · Simulador de Polarização</title>
     <style>
         * {
@@ -197,7 +197,7 @@
             box-shadow: 0 4px 10px -2px #102433;
         }
 
-        .btn-exemplo {
+        .btn-limpar {
             background: #ffffffd0;
             backdrop-filter: blur(5px);
             border: 1.5px solid #a0b8d0;
@@ -213,12 +213,12 @@
             align-items: center;
             gap: 8px;
         }
-        .btn-exemplo:hover {
+        .btn-limpar:hover {
             background: white;
             border-color: #2f5b88;
             transform: scale(1.02);
         }
-        .btn-exemplo:active {
+        .btn-limpar:active {
             transform: scale(0.98);
         }
 
@@ -310,6 +310,7 @@
             background: #ffffff;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             touch-action: none;
+            image-rendering: crisp-edges;
         }
 
         footer {
@@ -327,20 +328,21 @@
             .regiao { font-size: 1.6rem; padding: 8px 16px; }
             .item-q .valor { font-size: 1.4rem; }
             .ponto-q-dest { font-size: 1rem; }
-            .btn-calcular, .btn-exemplo { padding: 14px 22px; font-size: 1.1rem; }
+            .btn-calcular, .btn-limpar { padding: 14px 22px; font-size: 1.1rem; }
         }
     </style>
 </head>
 <body>
 <div class="card">
-    <h2>⚡ TransNPN <span>polarização completa</span></h2>
+    <h2>⚡ TransNPN <span>4 configurações</span></h2>
 
     <div class="selector-panel">
         <label>📐 Configuração</label>
         <select id="tipo" onchange="atualizarCampos()">
             <option value="rb">Resistor de base (RB fixo)</option>
             <option value="divisor">Divisor de tensão</option>
-            <option value="re" selected>Divisor + resistor de emissor (RE)</option>
+            <option value="divisor_re" selected>Divisor + Resistor de emissor (RE)</option>
+            <option value="re">Apenas Resistor de emissor (RE)</option>
         </select>
     </div>
 
@@ -349,7 +351,7 @@
 
     <div class="botoes">
         <button class="btn-calcular" onclick="calcular()">🔍 Calcular</button>
-        <button class="btn-exemplo" onclick="carregarExemplo()">📋 Exemplo</button>
+        <button class="btn-limpar" onclick="limparCampos()">🧹 Limpar</button>
     </div>
 
     <!-- Resultado elegante -->
@@ -366,7 +368,7 @@
 
     <!-- Gráfico -->
     <div class="canvas-wrapper">
-        <canvas id="grafico" width="600" height="420" style="width:100%; height:auto; aspect-ratio:600/420"></canvas>
+        <canvas id="grafico" width="1000" height="700" style="width:100%; height:auto; aspect-ratio:1000/700"></canvas>
     </div>
     <footer>toque nos campos · valores em V, Ω, mA · β sem unidade</footer>
 </div>
@@ -377,8 +379,8 @@
         let container = document.getElementById("campos");
         let html = "";
 
-        const makeField = (id, label, placeholder = "", value = "") => {
-            return `<div class="campo"><label>${label}</label><input type="number" id="${id}" placeholder="${placeholder}" value="${value}" step="any"></div>`;
+        const makeField = (id, label, placeholder = "") => {
+            return `<div class="campo"><label>${label}</label><input type="number" id="${id}" placeholder="${placeholder}" step="any"></div>`;
         };
 
         if (tipo === "rb") {
@@ -393,43 +395,69 @@
                 makeField("r1", "R1 (Ω)", "ex: 47k") +
                 makeField("r2", "R2 (Ω)", "ex: 10k") +
                 makeField("rc", "RC (Ω)", "ex: 2.2k");
-        } else { // re
+        } else if (tipo === "divisor_re") {
             html = makeField("vcc", "VCC (V)", "ex: 20") +
                 makeField("beta", "β", "ex: 220") +
                 makeField("r1", "R1 (Ω)", "ex: 56k") +
                 makeField("r2", "R2 (Ω)", "ex: 12k") +
                 makeField("rc", "RC (Ω)", "ex: 3.3k") +
                 makeField("re", "RE (Ω)", "ex: 1k");
+        } else { // re - apenas resistor de emissor
+            html = makeField("vbb", "VBB (V)", "ex: 5") +
+                makeField("vcc", "VCC (V)", "ex: 15") +
+                makeField("beta", "β", "ex: 200") +
+                makeField("rb", "RB (Ω)", "ex: 220k") +
+                makeField("rc", "RC (Ω)", "ex: 2.2k") +
+                makeField("re", "RE (Ω)", "ex: 1k");
         }
         container.innerHTML = html;
         
-        // Se não houver valores, carrega exemplo da configuração atual
-        let tipoAtual = document.getElementById("tipo").value;
-        carregarValoresExemplo(tipoAtual);
+        // Não carrega valores automáticos - apenas placeholders
     }
 
-    const valoresExemplo = {
-        rb: { vbb: 5, vcc: 12, beta: 200, rb: 220000, rc: 1000 },
-        divisor: { vcc: 15, beta: 180, r1: 47000, r2: 10000, rc: 2200 },
-        re: { vcc: 20, beta: 220, r1: 56000, r2: 12000, rc: 3300, re: 1000 }
-    };
-
-    function carregarValoresExemplo(tipo) {
-        const vals = valoresExemplo[tipo];
-        if (!vals) return;
-        for (let [key, val] of Object.entries(vals)) {
-            let el = document.getElementById(key);
-            if (el) {
-                el.value = val;
-            }
-        }
+    function limparCampos() {
+        // Limpa todos os inputs do grid
+        const inputs = document.querySelectorAll('.campo input');
+        inputs.forEach(input => input.value = '');
+        
+        // Reseta o resultado para estado neutro
+        document.querySelector(".regiao").innerHTML = "⚪ AGUARDANDO";
+        document.getElementById("res-ib").innerText = "0";
+        document.getElementById("res-ic").innerText = "0";
+        document.getElementById("res-vce").innerText = "0";
+        document.getElementById("res-p").innerText = "0";
+        document.getElementById("res-pontoq").innerHTML = "📍 Q (0.00 V , 0.00 mA)";
+        
+        // Limpa o canvas
+        const canvas = document.getElementById("grafico");
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Redesenha apenas os eixos vazios
+        desenharEixosVazios();
     }
 
-    function carregarExemplo() {
-        let tipo = document.getElementById("tipo").value;
-        carregarValoresExemplo(tipo);
-        // Calcula automaticamente após carregar os valores
-        calcular();
+    function desenharEixosVazios() {
+        const canvas = document.getElementById("grafico");
+        const ctx = canvas.getContext("2d");
+        const w = canvas.width, h = canvas.height;
+        
+        ctx.clearRect(0, 0, w, h);
+        
+        const padding = 100; // Mais espaço para os rótulos
+        
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#1e2f40";
+        ctx.beginPath();
+        ctx.moveTo(padding, padding - 5);
+        ctx.lineTo(padding, h - padding);
+        ctx.lineTo(w - padding + 5, h - padding);
+        ctx.stroke();
+
+        ctx.font = "bold 24px 'Inter', sans-serif";
+        ctx.fillStyle = "#14273e";
+        ctx.fillText("I꜀ (mA)", 15, padding - 35);
+        ctx.fillText("VCE (V)", w - padding - 50, h - padding + 45);
     }
 
     function calcular() {
@@ -449,6 +477,7 @@
                 if (isNaN(VBB) || isNaN(VCC) || isNaN(Beta) || isNaN(RB) || isNaN(RC)) throw new Error("Preencha todos");
                 IB = (VBB - Vbe) / RB;
                 IC = Beta * IB;
+                VCE = VCC - IC * RC;
             } else if (tipo === "divisor") {
                 VCC = parseFloat(document.getElementById("vcc")?.value);
                 Beta = parseFloat(document.getElementById("beta")?.value);
@@ -460,7 +489,8 @@
                 let Rth = (R1 * R2) / (R1 + R2);
                 IB = (Vth - Vbe) / Rth;
                 IC = Beta * IB;
-            } else { // re
+                VCE = VCC - IC * RC;
+            } else if (tipo === "divisor_re") {
                 VCC = parseFloat(document.getElementById("vcc")?.value);
                 Beta = parseFloat(document.getElementById("beta")?.value);
                 let R1 = parseFloat(document.getElementById("r1")?.value);
@@ -472,6 +502,21 @@
                 let Rth = (R1 * R2) / (R1 + R2);
                 IB = (Vth - Vbe) / (Rth + (Beta + 1) * RE);
                 IC = Beta * IB;
+                VCE = VCC - IC * RC - IC * RE; // VCE = VCC - IC*RC - IE*RE ≈ VCC - IC*(RC + RE)
+            } else { // re - apenas resistor de emissor
+                let VBB = parseFloat(document.getElementById("vbb")?.value);
+                VCC = parseFloat(document.getElementById("vcc")?.value);
+                Beta = parseFloat(document.getElementById("beta")?.value);
+                let RB = parseFloat(document.getElementById("rb")?.value);
+                RC = parseFloat(document.getElementById("rc")?.value);
+                let RE = parseFloat(document.getElementById("re")?.value);
+                if (isNaN(VBB) || isNaN(VCC) || isNaN(Beta) || isNaN(RB) || isNaN(RC) || isNaN(RE)) throw new Error("Preencha todos");
+                
+                // Cálculo para polarização com resistor de emissor
+                // IB = (VBB - Vbe) / (RB + (Beta + 1) * RE)
+                IB = (VBB - Vbe) / (RB + (Beta + 1) * RE);
+                IC = Beta * IB;
+                VCE = VCC - IC * RC - IC * RE; // VCE = VCC - IC*RC - IE*RE ≈ VCC - IC*(RC + RE)
             }
 
             let ICsat = (VCC - VCEsat) / RC;
@@ -482,7 +527,7 @@
                 IB = 0; IC = 0; VCE = VCC;
             } else if (IC < ICsat) {
                 regiao = "🟡 ATIVA";
-                VCE = VCC - IC * RC;
+                // VCE já foi calculado acima para cada caso
             } else {
                 regiao = "🟢 SATURAÇÃO";
                 IC = ICsat;
@@ -511,8 +556,13 @@
         const ctx = canvas.getContext("2d");
         const w = canvas.width, h = canvas.height;
         ctx.clearRect(0, 0, w, h);
+        
+        // Configuração para linhas mais nítidas
+        ctx.lineWidth = 2;
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
 
-        const padding = 70;
+        const padding = 100; // Aumentado para dar mais espaço aos rótulos
         const largura = w - 2 * padding;
         const altura = h - 2 * padding;
 
@@ -522,26 +572,62 @@
         function escalaX(v) { return padding + (v / VCC) * largura; }
         function escalaY(i_mA) { return h - padding - (i_mA / ICmax_mA) * altura; }
 
-        ctx.lineWidth = 2;
+        // Eixos com linhas mais grossas
+        ctx.lineWidth = 3;
         ctx.strokeStyle = "#1e2f40";
         ctx.beginPath();
-        ctx.moveTo(padding, padding - 5);
-        ctx.lineTo(padding, h - padding);
-        ctx.lineTo(w - padding + 5, h - padding);
+        ctx.moveTo(padding - 5, padding - 5);
+        ctx.lineTo(padding - 5, h - padding + 5);
+        ctx.lineTo(w - padding + 5, h - padding + 5);
         ctx.stroke();
 
-        ctx.font = "bold 14px 'Inter', sans-serif";
-        ctx.fillStyle = "#14273e";
-        ctx.fillText("I꜀ (mA)", 15, padding - 10);
-        ctx.fillText("VCE (V)", w - padding + 5, h - padding - 10);
+        // Rótulos dos eixos com fontes maiores e reposicionados
+        ctx.font = "bold 24px 'Inter', sans-serif";
+        ctx.fillStyle = "#0a1a2b";
+        ctx.fillText("I꜀ (mA)", 10, padding - 35);
+        ctx.fillText("VCE (V)", w - padding - 50, h - padding + 45);
 
+        // Marcações nos eixos (pequenos traços)
+        ctx.font = "bold 18px 'Inter', sans-serif";
+        ctx.fillStyle = "#2f4f7f";
+        
+        // Valores de VCE (a cada 20% do VCC) - reposicionados para ficarem totalmente visíveis
+        for (let i = 0; i <= 5; i++) {
+            let v = (i / 5) * VCC;
+            let x = escalaX(v);
+            ctx.beginPath();
+            ctx.moveTo(x, h - padding - 8);
+            ctx.lineTo(x, h - padding + 8);
+            ctx.strokeStyle = "#99aec9";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.fillStyle = "#1e3a5f";
+            // Ajuste na posição X para não cortar
+            let xOffset = (i === 0) ? -15 : (i === 5) ? -25 : -18;
+            ctx.fillText(v.toFixed(1), x + xOffset, h - padding + 35);
+        }
+        
+        // Valores de IC (a cada 20% do ICmax)
+        for (let i = 0; i <= 5; i++) {
+            let ic = (i / 5) * ICmax_mA;
+            let y = escalaY(ic);
+            ctx.beginPath();
+            ctx.moveTo(padding - 8, y);
+            ctx.lineTo(padding + 8, y);
+            ctx.stroke();
+            ctx.fillStyle = "#1e3a5f";
+            ctx.fillText(ic.toFixed(1), 5, y + 7);
+        }
+
+        // Reta de carga mais grossa e destacada
         ctx.beginPath();
-        ctx.strokeStyle = "#2f4f7f";
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#c51f3d";
+        ctx.lineWidth = 4;
         ctx.moveTo(escalaX(0), escalaY(ICmax_mA));
         ctx.lineTo(escalaX(VCC), escalaY(0));
         ctx.stroke();
 
+        // Curvas IB
         let IB_values = [
             IB_real * 0.5,
             IB_real * 0.75,
@@ -556,38 +642,44 @@
             if (IC_curve_mA > ICmax_mA) IC_curve_mA = ICmax_mA;
 
             ctx.beginPath();
-            ctx.strokeStyle = (IB_values[i] === IB_real) ? "#C5283D" : "#7a8faa";
-            ctx.lineWidth = (IB_values[i] === IB_real) ? 3.5 : 1.5;
-            ctx.setLineDash((IB_values[i] === IB_real) ? [] : [6, 4]);
+            // A curva que passa pelo Q é vermelha, as demais são azuis
+            ctx.strokeStyle = (IB_values[i] === IB_real) ? "#C5283D" : "#2f4f7f";
+            ctx.lineWidth = (IB_values[i] === IB_real) ? 4 : 2.5;
+            ctx.setLineDash((IB_values[i] === IB_real) ? [] : [8, 5]);
             ctx.moveTo(escalaX(0), escalaY(IC_curve_mA));
             ctx.lineTo(escalaX(VCC), escalaY(IC_curve_mA));
             ctx.stroke();
             ctx.setLineDash([]);
 
-            ctx.fillStyle = "#1e293b";
-            ctx.font = "bold 12px 'Inter'";
-            ctx.fillText("IB=" + (IB_values[i] * 1e6).toFixed(0) + " µA", escalaX(VCC) - 150, escalaY(IC_curve_mA) - 8);
+            // Rótulo com o valor de IB para TODAS as curvas
+            ctx.font = "bold 20px 'Inter', sans-serif";
+            let labelX = escalaX(VCC) - 220;
+            let labelY = escalaY(IC_curve_mA) - 18;
+            
+            // Fundo branco semitransparente para legibilidade
+            ctx.fillStyle = "#ffffffdd";
+            ctx.fillRect(labelX - 8, labelY - 26, 180, 36);
+            
+            // A curva que passa pelo Q tem texto VERMELHO, as demais em PRETO
+            ctx.fillStyle = (IB_values[i] === IB_real) ? "#C5283D" : "#000000";
+            ctx.fillText((IB_values[i] * 1e6).toFixed(1) + " µA", labelX, labelY);
         }
 
+        // Ponto Q - apenas o ponto, sem rótulo (já mostrado nos resultados)
         let ICQ_mA = ICQ * 1000;
-        ctx.fillStyle = "#0b1f33";
-        ctx.shadowColor = "#ffffff";
-        ctx.shadowBlur = 8;
+        ctx.shadowColor = "#00000080";
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = "#000000";
         ctx.beginPath();
-        ctx.arc(escalaX(VCEQ), escalaY(ICQ_mA), 9, 0, 2 * Math.PI);
+        ctx.arc(escalaX(VCEQ), escalaY(ICQ_mA), 14, 0, 2 * Math.PI);
         ctx.fill();
         ctx.shadowBlur = 0;
-        ctx.fillStyle = "#042131";
-        ctx.font = "bold 14px 'Inter'";
-        ctx.fillText("Q", escalaX(VCEQ) + 14, escalaY(ICQ_mA) - 12);
     }
 
     window.onload = function() {
         atualizarCampos();
-        // Carrega o exemplo e calcula automaticamente ao iniciar
-        setTimeout(() => {
-            carregarExemplo();
-        }, 100);
+        // Apenas desenha eixos vazios
+        desenharEixosVazios();
     };
 </script>
 </body>
